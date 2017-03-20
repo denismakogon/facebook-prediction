@@ -14,9 +14,9 @@
 
 import asyncio
 import click
+import pandas as pd
 import sys
 import uvloop
-import pandas as pd
 
 from repnup import actions
 
@@ -26,7 +26,7 @@ from repnup import actions
               help="Facebook Access Token", envvar='FAPIKEY')
 @click.argument("csv-file", type=click.Path())
 def facebook(fapikey, csv_file):
-    # sys.tracebacklimit = 0
+    sys.tracebacklimit = 0
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
     event_loop = asyncio.get_event_loop()
 

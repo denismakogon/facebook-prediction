@@ -12,26 +12,26 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import asyncio
 import aiohttp
-import time
-import typing
-import pandas
-import ujson
+import asyncio
 import json as builtinjson
+import pandas
+import time
+import typing  # noqa
+import ujson
 
 
 PHOTOS_URL = ("https://graph.facebook.com/v2.8/"
               "{0}/photos?"
               "fields=created_time&"
               "type=uploaded&"
-              "limit=100&"
+              "limit=150&"
               "access_token={1}")
 
 POSTS_URL = ("https://graph.facebook.com/v2.8/"
              "{0}/posts?"
              "fields=created_time&"
-             "limit=1000&"
+             "limit=150&"
              "access_token={1}")
 
 
@@ -53,7 +53,8 @@ def to_time(photo: dict):
 def skip_data_hook(d: dict):
     """
     JSON filter function.
-    Used to ignore significant amount of JSON object by excluding `data` field to decrease time.
+    Used to ignore significant amount of JSON object
+    by excluding `data` field to decrease time.
     :param d:
     :return:
     """
@@ -127,7 +128,7 @@ async def find_earliest_activity(delivery: asyncio.Future,
     # Required if no data supplied by the last redirect
     if not external_fallback_urls:
         external_fallback_urls = []
-
+    delivery._state = asyncio.futures._PENDING
     try:
 
         with aiohttp.ClientSession(loop=loop) as session:
@@ -169,6 +170,7 @@ async def find_earliest_activity(delivery: asyncio.Future,
                 delivery.set_result(
                     (to_time(date) for date in sorted(
                         json.get('data'), key=to_time)))
+                delivery.done()
 
     except (Exception, aiohttp.HttpProcessingError, HTTPAPIException) as ex:
         delivery.set_exception(ex)
@@ -185,9 +187,7 @@ def await_min_date(delivery: asyncio.Future, tasks: list,
         future._state = asyncio.futures._PENDING
 
     delivery.add_done_callback(done_callback)
-
     loop.run_until_complete(asyncio.wait(tasks, loop=loop))
-
     delivery.done()
     return min(dates)
 
@@ -207,10 +207,12 @@ def get_signup_date(fbid, username, access_token,
     :return: None
     """
     delivery = asyncio.Future(loop=loop)
-    tasks = [find_earliest_activity(delivery, PHOTOS_URL.format(
-                 fbid, access_token), loop=loop),
-             find_earliest_activity(delivery, POSTS_URL.format(
-                 fbid, access_token), loop=loop)]
+    tasks = [
+        find_earliest_activity(delivery, PHOTOS_URL.format(
+            fbid, access_token), loop=loop),
+        find_earliest_activity(delivery, POSTS_URL.format(
+            fbid, access_token), loop=loop)
+    ]
 
     result = await_min_date(delivery, tasks, loop=loop)
     print("{},{},{}".format(username, fbid, to_string_time(result)))

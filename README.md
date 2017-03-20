@@ -81,7 +81,7 @@ If you're using `virtualenv`:
 
 Install app:
 
-    pip install .
+    pip install -e .
 
 Usage
 -----
@@ -98,6 +98,25 @@ To see its usage information use following command:
     Options:
       --fapikey TEXT  Facebook API Key
       --help          Show this message and exit.
+
+CLI tools uses provides interactive mode for retrieving data because it may appear that original dataset file may contain a lot data and going through whole data frame may take unpredictable amount of time.
+
+Performance
+-----------
+
+This app was tested on different input parametes like query limits, different configuration of coroutine chaining.
+So the average `posts` check takes up to 4 seconds per user, `photos` check takes up to 2.7 seconds per user with limits to 150 activities.
+Pattern was discovered:
+
+    The less you ask (setting query limit to 10 activities) then more time it takes to get final result (up to 25 seconds per each user).
+
+But it really depends on how many activities user has.
+
+Known issues
+------------
+
+Facebook API Graph is not capable to perform ordering (both `chronological` and `reverse_chronological`) on posts and photos `created_time` timestamp,
+that's why it is necessary to do reverse looping over redirects (see [Algorithm](https://github.com/denismakogon/facebook-prediction#algorithm) section).
 
 Disclaimer
 ----------
